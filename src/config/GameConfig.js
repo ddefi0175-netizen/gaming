@@ -47,21 +47,24 @@ export const CONFIG = {
                 speed: 80,
                 damage: 10,
                 xp: 5,
-                color: 0xe74c3c
+                color: 0xe74c3c,
+                texture: 'enemy_basic'
             },
             FAST: {
                 health: 10,
                 speed: 150,
                 damage: 5,
                 xp: 3,
-                color: 0xf39c12
+                color: 0xf39c12,
+                texture: 'enemy_fast'
             },
             TANK: {
                 health: 80,
                 speed: 40,
                 damage: 25,
                 xp: 15,
-                color: 0x8e44ad
+                color: 0x8e44ad,
+                texture: 'enemy_tanky'
             },
             BOSS: {
                 health: 500,
@@ -69,7 +72,59 @@ export const CONFIG = {
                 damage: 40,
                 xp: 100,
                 color: 0x9b59b6,
-                scale: 2.5
+                scale: 2.5,
+                texture: 'enemy_boss'
+            },
+            // New enemy types
+            RANGED: {
+                health: 15,
+                speed: 60,
+                damage: 12,
+                xp: 8,
+                color: 0x2c3e50,
+                texture: 'enemy_ranged',
+                projectileCooldown: 2000,
+                projectileSpeed: 250,
+                preferredDistance: 200
+            },
+            SPLITTER: {
+                health: 30,
+                speed: 70,
+                damage: 8,
+                xp: 10,
+                color: 0x1abc9c,
+                splitCount: 2, // Spawns 2 mini versions on death
+                texture: 'enemy_basic'
+            },
+            EXPLODER: {
+                health: 25,
+                speed: 100,
+                damage: 5,
+                xp: 12,
+                color: 0xff6600,
+                explosionRadius: 60,
+                explosionDamage: 30,
+                texture: 'enemy_basic'
+            },
+            HEALER: {
+                health: 40,
+                speed: 50,
+                damage: 5,
+                xp: 15,
+                color: 0x27ae60,
+                healRadius: 100,
+                healAmount: 5,
+                healCooldown: 3000,
+                texture: 'enemy_basic'
+            },
+            ELITE: {
+                health: 150,
+                speed: 60,
+                damage: 20,
+                xp: 50,
+                color: 0xf1c40f,
+                scale: 1.5,
+                texture: 'enemy_tanky'
             }
         },
 
