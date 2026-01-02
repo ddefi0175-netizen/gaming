@@ -1,0 +1,28 @@
+{
+    "name": "survivor-game",
+    "version": "1.0.0",
+    "description": "A Vampire Survivors-style roguelike game",
+    "main": "src/main.js",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "build:web": "vite build",
+        "build:steam": "VITE_PLATFORM=steam vite build --outDir dist-steam",
+        "build:mobile": "VITE_PLATFORM=mobile vite build --outDir dist-mobile",
+        "preview": "vite preview"
+    },
+    "keywords": [
+        "game",
+        "phaser",
+        "roguelike",
+        "survivor"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "vite": "^5.0.0"
+    },
+    "dependencies": {
+        "phaser": "^3.70.0"
+    }
+}
