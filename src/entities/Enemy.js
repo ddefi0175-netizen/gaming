@@ -3,42 +3,79 @@ import { CONFIG } from '../config/GameConfig.js';
 
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, type = 'NORMAL', healthMultiplier = 1) {
-        const textureMap = {
-            'NORMAL': 'enemy_normal',
-            'FAST': 'enemy_fast',
-            'TANK': 'enemy_tank',
-            'BOSS': 'enemy_boss'
-        };
+        // Get config for this type
+        const config = CONFIG.ENEMY.TYPES[type] || CONFIG.ENEMY.TYPES.NORMAL;
+        const texture = config.texture || 'enemy_normal';
 
-        super(scene, x, y, textureMap[type] || 'enemy_normal');
+        super(scene, x, y, texture);
 
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        // Get config for this type
+        this.type = type;
         this.enemyType = type;
-        this.config = CONFIG.ENEMY.TYPES[type] || CONFIG.ENEMY.TYPES.NORMAL;
+        this.config = config;
         this.isBoss = type === 'BOSS';
 
         // Stats with difficulty scaling
-        this.maxHealth = Math.floor(this.config.health * healthMultiplier);
+        this.maxHealth = Math.floor(config.health * healthMultiplier);
         this.currentHealth = this.maxHealth;
-        this.speed = this.config.speed;
-        this.damage = this.config.damage;
-        this.xpValue = Math.floor(this.config.xp * healthMultiplier);
+        this.speed = config.speed;
+        this.damage = config.damage;
+        this.xpValue = Math.floor(config.xp * healthMultiplier);
 
         // Setup physics
         const radius = this.isBoss ? 24 : 12;
         this.body.setCircle(radius, this.isBoss ? 8 : 4, this.isBoss ? 8 : 4);
 
-        // Boss visuals
-        if (this.isBoss) {
-            this.setScale(this.config.scale || 2);
+        // Boss/Elite visuals
+        if (config.scale) {
+            this.setScale(config.scale);
+        }
+        if (this.isBoss || type === 'ELITE') {
             this.createHealthBar();
         }
 
         // State
         this.isAlive = true;
+        this.isSlowed = false;
+
+        // Special enemy type setup
+        this.setupSpecialBehavior();
+    }
+
+    setupSpecialBehavior() {
+        // Ranged enemy
+        if (this.type === 'RANGED') {
+            this.lastShotTime = 0;
+            this.projectileCooldown = this.config.projectileCooldown || 2000;
+            this.projectileSpeed = this.config.projectileSpeed || 250;
+            this.preferredDistance = this.config.preferredDistance || 200;
+        }
+
+        // Healer enemy
+        if (this.type === 'HEALER') {
+            this.lastHealTime = 0;
+            this.healCooldown = this.config.healCooldown || 3000;
+            this.healRadius = this.config.healRadius || 100;
+            this.healAmount = this.config.healAmount || 5;
+        }
+
+        // Exploder enemy
+        if (this.type === 'EXPLODER') {
+            this.explosionRadius = this.config.explosionRadius || 60;
+            this.explosionDamage = this.config.explosionDamage || 30;
+        }
+
+        // Splitter enemy
+        if (this.type === 'SPLITTER') {
+            this.splitCount = this.config.splitCount || 2;
+        }
+
+        // Set tint for special enemy types
+        if (this.config.color && !this.isBoss) {
+            this.setTint(this.config.color);
+        }
     }
 
     createHealthBar() {
@@ -51,18 +88,137 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     update(player) {
         if (!this.isAlive || !player) return;
 
-        // Move toward player
+        const distToPlayer = Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y);
+
+        // Ranged enemy behavior
+        if (this.type === 'RANGED') {
+            this.updateRangedBehavior(player, distToPlayer);
+            return;
+        }
+
+        // Healer enemy behavior
+        if (this.type === 'HEALER') {
+            this.updateHealerBehavior(player);
+        }
+
+        // Move toward player (standard behavior)
         const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
         this.setVelocity(
             Math.cos(angle) * this.speed,
             Math.sin(angle) * this.speed
         );
 
-        // Update boss health bar position
-        if (this.isBoss && this.healthBarBg) {
+        // Update health bar position
+        if (this.healthBarBg) {
             this.healthBarBg.setPosition(this.x, this.y - 40);
             this.healthBarFill.setPosition(this.x - 30, this.y - 40);
         }
+    }
+
+    updateRangedBehavior(player, distToPlayer) {
+        const currentTime = this.scene.time.now;
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+
+        // Maintain preferred distance
+        if (distToPlayer < this.preferredDistance - 50) {
+            // Too close, move away
+            this.setVelocity(
+                Math.cos(angle + Math.PI) * this.speed,
+                Math.sin(angle + Math.PI) * this.speed
+            );
+        } else if (distToPlayer > this.preferredDistance + 50) {
+            // Too far, move closer
+            this.setVelocity(
+                Math.cos(angle) * this.speed * 0.7,
+                Math.sin(angle) * this.speed * 0.7
+            );
+        } else {
+            // In range, stop and shoot
+            this.setVelocity(0, 0);
+        }
+
+        // Shoot projectile
+        if (currentTime - this.lastShotTime >= this.projectileCooldown) {
+            this.lastShotTime = currentTime;
+            this.shootAtPlayer(player);
+        }
+    }
+
+    shootAtPlayer(player) {
+        const angle = Phaser.Math.Angle.Between(this.x, this.y, player.x, player.y);
+
+        // Create enemy projectile
+        const proj = this.scene.physics.add.sprite(this.x, this.y, 'enemy_projectile');
+        proj.setVelocity(
+            Math.cos(angle) * this.projectileSpeed,
+            Math.sin(angle) * this.projectileSpeed
+        );
+        proj.damage = this.damage;
+        proj.setTint(0xe74c3c);
+
+        // Add to a group if exists, or handle collision manually
+        if (!this.scene.enemyProjectiles) {
+            this.scene.enemyProjectiles = this.scene.physics.add.group();
+            this.scene.physics.add.overlap(
+                this.scene.player,
+                this.scene.enemyProjectiles,
+                (player, proj) => {
+                    player.takeDamage(proj.damage);
+                    proj.destroy();
+                }
+            );
+        }
+        this.scene.enemyProjectiles.add(proj);
+
+        // Destroy after 3 seconds
+        this.scene.time.delayedCall(3000, () => {
+            if (proj.active) proj.destroy();
+        });
+    }
+
+    updateHealerBehavior(player) {
+        const currentTime = this.scene.time.now;
+
+        // Heal nearby enemies
+        if (currentTime - this.lastHealTime >= this.healCooldown) {
+            this.lastHealTime = currentTime;
+            this.healNearbyEnemies();
+        }
+    }
+
+    healNearbyEnemies() {
+        // Visual effect
+        const healCircle = this.scene.add.circle(this.x, this.y, this.healRadius, 0x27ae60, 0.3);
+        this.scene.tweens.add({
+            targets: healCircle,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => healCircle.destroy()
+        });
+
+        // Heal all enemies in radius
+        this.scene.enemies.getChildren().forEach(enemy => {
+            if (enemy === this || !enemy.isAlive) return;
+
+            const dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
+            if (dist <= this.healRadius) {
+                enemy.currentHealth = Math.min(enemy.maxHealth, enemy.currentHealth + this.healAmount);
+
+                // Visual feedback
+                const healText = this.scene.add.text(enemy.x, enemy.y - 20, `+${this.healAmount}`, {
+                    fontSize: '12px',
+                    color: '#27ae60'
+                }).setOrigin(0.5);
+
+                this.scene.tweens.add({
+                    targets: healText,
+                    y: healText.y - 20,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => healText.destroy()
+                });
+            }
+        });
     }
 
     takeDamage(amount) {
