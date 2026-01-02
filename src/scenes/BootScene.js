@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SpriteGenerator } from '../utils/SpriteGenerator.js';
 
 export class BootScene extends Phaser.Scene {
     constructor() {
@@ -20,132 +21,104 @@ export class BootScene extends Phaser.Scene {
             fill: '#ffffff'
         }).setOrigin(0.5);
 
+        const percentText = this.add.text(width / 2, height / 2, '0%', {
+            font: '18px Arial',
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+
         // Progress events
         this.load.on('progress', (value) => {
             progressBar.clear();
             progressBar.fillStyle(0x3498db, 1);
             progressBar.fillRect(width / 2 - 150, height / 2 - 15, 300 * value, 30);
+            percentText.setText(Math.round(value * 100) + '%');
         });
 
         this.load.on('complete', () => {
             progressBar.destroy();
             progressBox.destroy();
             loadingText.destroy();
+            percentText.destroy();
         });
 
-        // Generate all game graphics
+        // Generate all game graphics using the sprite generator
         this.createGameGraphics();
     }
 
     createGameGraphics() {
-        // Player sprite
-        const playerGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        playerGraphics.fillStyle(0x3498db, 1);
-        playerGraphics.fillCircle(16, 16, 14);
-        playerGraphics.fillStyle(0x2980b9, 1);
-        playerGraphics.fillCircle(16, 16, 10);
-        playerGraphics.generateTexture('player', 32, 32);
+        // Use the enhanced sprite generator for better visuals
+        const spriteGen = new SpriteGenerator(this);
+        spriteGen.generateAll();
 
-        // Enemy sprites
+        // Generate any additional legacy sprites needed for compatibility
+        this.createLegacySprites();
+    }
+
+    createLegacySprites() {
+        // Enemy sprites with old names for backward compatibility
         const enemyColors = [0xe74c3c, 0xf39c12, 0x8e44ad];
         const enemyNames = ['enemy_normal', 'enemy_fast', 'enemy_tank'];
         const enemySizes = [12, 10, 18];
 
         enemyNames.forEach((name, i) => {
-            const g = this.make.graphics({ x: 0, y: 0, add: false });
-            g.fillStyle(enemyColors[i], 1);
-            g.fillCircle(16, 16, enemySizes[i]);
-            g.generateTexture(name, 32, 32);
+            if (!this.textures.exists(name)) {
+                const g = this.make.graphics({ x: 0, y: 0, add: false });
+                g.fillStyle(enemyColors[i], 1);
+                g.fillCircle(16, 16, enemySizes[i]);
+                g.generateTexture(name, 32, 32);
+                g.destroy();
+            }
         });
 
-        // Boss sprite
-        const bossGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        bossGraphics.fillStyle(0x9b59b6, 1);
-        bossGraphics.fillCircle(24, 24, 22);
-        bossGraphics.fillStyle(0x8e44ad, 1);
-        bossGraphics.fillCircle(24, 24, 16);
-        bossGraphics.fillStyle(0xe74c3c, 1);
-        bossGraphics.fillCircle(24, 24, 8);
-        bossGraphics.generateTexture('enemy_boss', 48, 48);
-
-        // Projectile
-        const projGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        projGraphics.fillStyle(0x3498db, 1);
-        projGraphics.fillCircle(6, 6, 5);
-        projGraphics.generateTexture('projectile', 12, 12);
-
-        // XP orb
-        const xpGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        xpGraphics.fillStyle(0x2ecc71, 1);
-        xpGraphics.fillCircle(6, 6, 5);
-        xpGraphics.fillStyle(0x27ae60, 1);
-        xpGraphics.fillCircle(6, 6, 3);
-        xpGraphics.generateTexture('xp_orb', 12, 12);
+        // XP orb (if not generated)
+        if (!this.textures.exists('xp_orb')) {
+            const xpGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            xpGraphics.fillStyle(0x2ecc71, 1);
+            xpGraphics.fillCircle(6, 6, 5);
+            xpGraphics.fillStyle(0x27ae60, 1);
+            xpGraphics.fillCircle(6, 6, 3);
+            xpGraphics.generateTexture('xp_orb', 12, 12);
+            xpGraphics.destroy();
+        }
 
         // Health pickup
-        const healthGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        healthGraphics.fillStyle(0xe74c3c, 1);
-        healthGraphics.fillRect(4, 8, 8, 16);
-        healthGraphics.fillRect(0, 12, 16, 8);
-        healthGraphics.generateTexture('health_pickup', 16, 24);
+        if (!this.textures.exists('health_pickup')) {
+            const healthGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            healthGraphics.fillStyle(0xe74c3c, 1);
+            healthGraphics.fillRect(4, 8, 8, 16);
+            healthGraphics.fillRect(0, 12, 16, 8);
+            healthGraphics.generateTexture('health_pickup', 16, 24);
+            healthGraphics.destroy();
+        }
 
         // Area effect
-        const areaGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        areaGraphics.fillStyle(0xe74c3c, 0.5);
-        areaGraphics.fillCircle(50, 50, 50);
-        areaGraphics.generateTexture('area_effect', 100, 100);
+        if (!this.textures.exists('area_effect')) {
+            const areaGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            areaGraphics.fillStyle(0xe74c3c, 0.5);
+            areaGraphics.fillCircle(50, 50, 50);
+            areaGraphics.generateTexture('area_effect', 100, 100);
+            areaGraphics.destroy();
+        }
 
         // Chain lightning
-        const chainGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        chainGraphics.lineStyle(3, 0xf1c40f, 1);
-        chainGraphics.lineBetween(0, 4, 60, 4);
-        chainGraphics.generateTexture('chain_lightning', 60, 8);
-
-        // Orbital orb
-        const orbGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        orbGraphics.fillStyle(0x2ecc71, 1);
-        orbGraphics.fillCircle(8, 8, 8);
-        orbGraphics.generateTexture('orbital', 16, 16);
-
-        // Virtual joystick base
-        const joystickBase = this.make.graphics({ x: 0, y: 0, add: false });
-        joystickBase.fillStyle(0xffffff, 0.3);
-        joystickBase.fillCircle(60, 60, 60);
-        joystickBase.generateTexture('joystick_base', 120, 120);
-
-        // Virtual joystick thumb
-        const joystickThumb = this.make.graphics({ x: 0, y: 0, add: false });
-        joystickThumb.fillStyle(0xffffff, 0.5);
-        joystickThumb.fillCircle(25, 25, 25);
-        joystickThumb.generateTexture('joystick_thumb', 50, 50);
-
-        // Button
-        const buttonGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        buttonGraphics.fillStyle(0x3498db, 1);
-        buttonGraphics.fillRoundedRect(0, 0, 200, 50, 10);
-        buttonGraphics.generateTexture('button', 200, 50);
-
-        // Button hover
-        const buttonHover = this.make.graphics({ x: 0, y: 0, add: false });
-        buttonHover.fillStyle(0x2980b9, 1);
-        buttonHover.fillRoundedRect(0, 0, 200, 50, 10);
-        buttonHover.generateTexture('button_hover', 200, 50);
-
-        // Upgrade card
-        const cardGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        cardGraphics.fillStyle(0x2c3e50, 1);
-        cardGraphics.fillRoundedRect(0, 0, 180, 220, 15);
-        cardGraphics.lineStyle(3, 0x3498db, 1);
-        cardGraphics.strokeRoundedRect(0, 0, 180, 220, 15);
-        cardGraphics.generateTexture('upgrade_card', 180, 220);
+        if (!this.textures.exists('chain_lightning')) {
+            const chainGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            chainGraphics.lineStyle(3, 0xf1c40f, 1);
+            chainGraphics.lineBetween(0, 4, 60, 4);
+            chainGraphics.generateTexture('chain_lightning', 60, 8);
+            chainGraphics.destroy();
+        }
 
         // Background tile
-        const bgGraphics = this.make.graphics({ x: 0, y: 0, add: false });
-        bgGraphics.fillStyle(0x1a1a2e, 1);
-        bgGraphics.fillRect(0, 0, 64, 64);
-        bgGraphics.lineStyle(1, 0x16213e, 1);
-        bgGraphics.strokeRect(0, 0, 64, 64);
-        bgGraphics.generateTexture('bg_tile', 64, 64);
+        if (!this.textures.exists('bg_tile')) {
+            const bgGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            bgGraphics.fillStyle(0x1a1a2e, 1);
+            bgGraphics.fillRect(0, 0, 64, 64);
+            bgGraphics.lineStyle(1, 0x16213e, 1);
+            bgGraphics.strokeRect(0, 0, 64, 64);
+            bgGraphics.generateTexture('bg_tile', 64, 64);
+            bgGraphics.destroy();
+        }
     }
 
     create() {

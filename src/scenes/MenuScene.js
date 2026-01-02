@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getSoundManager } from '../utils/SoundManager.js';
 
 export class MenuScene extends Phaser.Scene {
     constructor() {
@@ -7,6 +8,8 @@ export class MenuScene extends Phaser.Scene {
 
     create() {
         const { width, height } = this.cameras.main;
+        this.soundManager = getSoundManager(this);
+        this.soundManager.resume();
 
         // Title
         this.add.text(width / 2, 100, '⚔️ SURVIVOR', {
@@ -82,6 +85,7 @@ export class MenuScene extends Phaser.Scene {
 
         button.on('pointerover', () => {
             button.setTexture('button_hover');
+            this.soundManager?.play('hover');
         });
 
         button.on('pointerout', () => {
@@ -94,6 +98,7 @@ export class MenuScene extends Phaser.Scene {
 
         button.on('pointerup', () => {
             button.setScale(1);
+            this.soundManager?.play('select');
             callback();
         });
 

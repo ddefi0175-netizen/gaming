@@ -115,6 +115,41 @@ export const CONFIG = {
             orbs: 2,
             radius: 80,
             color: 0x2ecc71
+        },
+        // New weapons
+        LASER: {
+            name: 'Laser Beam',
+            damage: 5,
+            cooldown: 50,
+            range: 300,
+            width: 4,
+            color: 0xff00ff
+        },
+        BOOMERANG: {
+            name: 'Boomerang',
+            damage: 12,
+            cooldown: 1500,
+            speed: 300,
+            returnSpeed: 400,
+            pierce: 999,
+            color: 0x9b59b6
+        },
+        EXPLOSIVE: {
+            name: 'Explosive Shot',
+            damage: 30,
+            cooldown: 2500,
+            speed: 200,
+            explosionRadius: 80,
+            color: 0xff6600
+        },
+        FREEZE: {
+            name: 'Frost Nova',
+            damage: 8,
+            cooldown: 4000,
+            radius: 120,
+            slowDuration: 2000,
+            slowAmount: 0.5,
+            color: 0x00ffff
         }
     },
 

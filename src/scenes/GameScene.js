@@ -5,6 +5,7 @@ import { createWeapon } from '../entities/Weapon.js';
 import { XPOrb, HealthPickup } from '../entities/Pickups.js';
 import { VirtualJoystick } from '../ui/VirtualJoystick.js';
 import { CONFIG } from '../config/GameConfig.js';
+import { getSoundManager } from '../utils/SoundManager.js';
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -12,6 +13,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     create() {
+        // Initialize sound manager
+        this.soundManager = getSoundManager(this);
+        this.soundManager.resume();
+        this.soundManager.startMusic();
+
         // Reset game state
         this.gameTime = 0;
         this.isPaused = false;
@@ -153,11 +159,13 @@ export class GameScene extends Phaser.Scene {
     setupEventListeners() {
         // Level up event
         this.events.on('levelUp', (level) => {
+            this.soundManager?.play('levelUp');
             this.showUpgradeScreen();
         });
 
         // Player death event
         this.events.on('playerDied', (stats) => {
+            this.soundManager?.stopMusic();
             this.handleGameOver(stats);
         });
 
@@ -184,6 +192,9 @@ export class GameScene extends Phaser.Scene {
 
     showBossWarning() {
         const { width, height } = this.cameras.main;
+
+        // Play warning sound
+        this.soundManager?.play('bossWarning');
 
         const warning = this.add.text(width / 2, height / 2, '⚠️ BOSS INCOMING! ⚠️', {
             fontSize: '32px',
@@ -239,6 +250,9 @@ export class GameScene extends Phaser.Scene {
 
         const died = player.takeDamage(enemy.damage);
 
+        // Play hurt sound
+        this.soundManager?.play('playerHurt');
+
         // Push enemy away
         const angle = Phaser.Math.Angle.Between(player.x, player.y, enemy.x, enemy.y);
         enemy.setVelocity(
@@ -251,10 +265,20 @@ export class GameScene extends Phaser.Scene {
         if (!enemy.isAlive) return;
         if (!projectile.hitEnemy(enemy)) return;
 
+        // Play hit sound
+        this.soundManager?.play('hit');
+
         const died = enemy.takeDamage(projectile.damage);
         if (died) {
             this.player.killCount++;
             this.player.damageDealt += projectile.damage;
+
+            // Play death sound based on enemy type
+            if (enemy.type === 'BOSS') {
+                this.soundManager?.play('bossDeath');
+            } else {
+                this.soundManager?.play('enemyDeath');
+            }
         }
     }
 
@@ -272,18 +296,30 @@ export class GameScene extends Phaser.Scene {
 
         orbital.lastHitTime[enemyId] = currentTime;
 
+        // Play hit sound
+        this.soundManager?.play('hit');
+
         const died = enemy.takeDamage(orbital.damage);
         if (died) {
             this.player.killCount++;
             this.player.damageDealt += orbital.damage;
+
+            // Play death sound
+            if (enemy.type === 'BOSS') {
+                this.soundManager?.play('bossDeath');
+            } else {
+                this.soundManager?.play('enemyDeath');
+            }
         }
     }
 
     handleXPCollection(player, xpOrb) {
+        this.soundManager?.play('pickup');
         xpOrb.collect(player);
     }
 
     handleHealthCollection(player, healthPickup) {
+        this.soundManager?.play('pickup');
         healthPickup.collect(player);
     }
 
